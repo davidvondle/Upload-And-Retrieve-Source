@@ -1,6 +1,7 @@
 These tools allow you Arduino board to be the link to it's own source stored online.
 
 To install, place the folders "GistUploader" and "GistRetriever" in Documents/Arduino/tools.
+On Windows you will need the "DevCon" command line utility, download directly from Microsoft here: http://support.microsoft.com/kb/311272
 
 When you are finished programming your Arduino, select "Save and Upload Source to Github from the "Tools" dropdown menu.
 
@@ -23,6 +24,9 @@ This only really makes sense on your own github account, as the login informatio
 
 Libraries:
 This code supports libraries that are in the same folder as the .ino/.pde file.  
+
+For an extensive write-up on this project read my post on IDEO Labs here: 
+http://labs.ideo.com/2012/03/09/arduino-tool-that-connects-each-board-to-its-own-source/
 
 ENJOY!
 
