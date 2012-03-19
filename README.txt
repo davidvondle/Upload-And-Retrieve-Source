@@ -2,6 +2,7 @@ These tools allow you Arduino board to be the link to it's own source stored onl
 
 To install, place the folders "GistUploader" and "GistRetriever" in Documents/Arduino/tools.
 On Windows you will need the "DevCon" command line utility, download directly from Microsoft here: http://support.microsoft.com/kb/311272
+devcon.exe should be placed in the same "tools" folder as everything else.
 
 When you are finished programming your Arduino, select "Save and Upload Source to Github from the "Tools" dropdown menu.
 
