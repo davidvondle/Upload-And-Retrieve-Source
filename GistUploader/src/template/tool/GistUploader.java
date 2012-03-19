@@ -19,7 +19,7 @@
  * Boston, MA  02111-1307  USA
  * 
  * @author		Dave Vondle http://labs.ideo.com
- * @modified	02/27/2012
+ * @modified	03/19/2012
  * @version		0.1
  */
 
@@ -40,9 +40,12 @@ import java.net.InetAddress;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Set;
 
 import org.eclipse.egit.github.core.Gist;
 import org.eclipse.egit.github.core.GistFile;
@@ -62,8 +65,7 @@ import processing.core.PApplet;
  
 	Editor editor; 
 	
-	static Hashtable defaults;
-	static Hashtable table = new Hashtable();
+	static LinkedHashMap table = new LinkedHashMap();
 	static final String GIST_FILE = "gistCredentials.txt";
 	static File gistCredFile;
 	
@@ -77,16 +79,13 @@ import processing.core.PApplet;
 
 	public void init(Editor editor) {
 		this.editor=editor;
-		
-	    // clone the hash table
-		loadDefaults();
-	    defaults = (Hashtable) table.clone();
 
 	      // next load user preferences file
 	    gistCredFile = Base.getSettingsFile(GIST_FILE);
 	      if (!gistCredFile.exists()) {
 	        // create a new preferences file if none exists
 	        // saves the defaults out to the file
+	    	loadDefaults();
 	        save();
 
 	      } else {
@@ -172,13 +171,8 @@ import processing.core.PApplet;
 		    			    username=username.substring(0,username.indexOf('\n')).trim();
 		    			    password=(String) table.get(username);
 		    			}else{ //defaults to first entry in gistCredentials.txt
-		    				Enumeration e = table.keys();
-		    				String key="";
-		    				while (e.hasMoreElements()) {//i'm a hack to get to the first entry
-		    	 		      key = (String) e.nextElement();
-		    	 		    }
-		    	 		   username=key;
-		    	 		   password=(String) table.get(username);
+		    	 		   username=table.keySet().toArray()[0].toString(); //first entry
+		    	 		   password=(String) table.get(table.keySet().toArray()[0]);
 		    			}
 	        	}
 			}
@@ -206,7 +200,7 @@ import processing.core.PApplet;
 			            		}
 			            	}
 			            	if(!matchingFile){
-			            	service.updateGist(gist.setFiles(Collections.singletonMap(key, new GistFile())));
+			            	service.updateGist(gist.setFiles(Collections.singletonMap(key, new GistFile())));//this makes a blank sketch show in the revisions but it's the best solution I found
 			            	}
 				        }
 		            	for(int j =0; j<theSketches.length; j++){
@@ -217,6 +211,7 @@ import processing.core.PApplet;
 		            	gist.setFiles(mp);
 	
 		            	service.updateGist(gist);
+		            	deleteGistsOnOtherAccounts(username, serialNumber);
 		            	System.out.println(new String("You can find the source online at: " + gist.getHtmlUrl()));
 		            	foundMatchingGist=true;
 		            }else{ //if the privacy settings have changed, delete the file and make a new one
@@ -235,12 +230,45 @@ import processing.core.PApplet;
 	        	}
 	        	gist.setFiles(mp);
 	        	gist = service.createGist(gist);
+	        	deleteGistsOnOtherAccounts(username, serialNumber);
 		        System.out.println(new String("You can find the source online at: " + gist.getHtmlUrl()));
 	        }
 	      }catch(Exception e){
 	        System.out.println("Failed. Login credentials incorrect, please correct gistCredentials.txt");
 	        System.out.println(e);
 	      }
+	}
+	
+	public void deleteGistsOnOtherAccounts(String correctUsername, String serialNumber) {  // if you have multiple accounts in your gistCredentials file, it needs to make sure only the newest file exists
+		Iterator iterator = table.keySet().iterator();
+		while (iterator.hasNext()) { 
+			Object key = (String) iterator.next();
+			String username=(String) key;
+			if (username != correctUsername){
+				GitHubClient client;
+			    GistService service;
+			    Gist gist = new Gist();
+				
+				String password=(String) table.get(key);
+				
+				client = new GitHubClient().setCredentials(username, password);
+			    service = new GistService(client);
+				
+				try{
+			        List<Gist> gists = service.getGists(username);
+			        //Boolean foundMatchingGist=false;
+			        for (int i = gists.size(); --i >= 0;){
+			        	gist = (Gist)gists.get(i);
+			        	if(gist.getDescription().toUpperCase().contains(serialNumber.toUpperCase())){ //found the last matching gist. toUpperCase is because Windows capitalizes the letters I hope this isn't a problem!
+				             service.deleteGist(gist.getId());
+			        	}
+			        }
+			      }catch(Exception e){
+			        System.out.println("Some login credentials are incorrect, please correct gistCredentials.txt");
+			        System.out.println(e);
+			      }
+			}
+		}
 	}
 	
 	public String getCurrentBoard() {
@@ -406,18 +434,15 @@ import processing.core.PApplet;
 	  }
 	
 	public void loadDefaults() { 
-		//bottom to top
 		table.put("arduinoboard", "1knowmysource");
 	}
 	
 	static protected void save() {
-//	    try {
 	    // on startup, don't worry about it
 	    // this is trying to update the prefs for who is open
 	    // before Preferences.init() has been called.
 	    if (gistCredFile == null) return;
 
-	    // Fix for 0163 to properly use Unicode when writing preferences.txt
 	    PrintWriter writer = PApplet.createWriter(gistCredFile);
 	    writer.println("# add usernames and passwords for github accounts here");
 	    writer.println("# the format is <username>=<password>");
@@ -425,12 +450,13 @@ import processing.core.PApplet;
 	    writer.println("# USE_GITHUB_USERNAME=<username>");
 	    writer.println("# if no account is specified it will use the first one");
 	    writer.println("#");
-	    Enumeration e = table.keys(); //properties.propertyNames();
-	    while (e.hasMoreElements()) {
-	      String key = (String) e.nextElement();
-	      writer.println(key + "=" + ((String) table.get(key)));
-	    }
-
+	    
+	    Iterator iterator = table.keySet().iterator();
+		while (iterator.hasNext()) { //in case there's a need for multiple defaults in the future
+			Object key = (String) iterator.next();
+			writer.println((String) key + "=" + ((String) table.get(key)));
+		}
+		
 	    writer.flush();
 	    writer.close();
 	  }

@@ -19,7 +19,7 @@
  * Boston, MA  02111-1307  USA
  * 
  * @author		Dave Vondle http://labs.ideo.com
- * @modified	02/17/2012
+ * @modified	03/19/2012
  * @version		0.1
  */
 
@@ -40,6 +40,8 @@ import java.net.InetAddress;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -60,7 +62,7 @@ import processing.core.PApplet;
  // must be the same as the value defined for project.name in your build.properties
  
 	Editor editor; 
-	static Hashtable table = new Hashtable();
+	static LinkedHashMap table = new LinkedHashMap();
 	static final String GIST_FILE = "gistCredentials.txt";
 	static File gistCredFile;
 	Gist gist = new Gist();
@@ -103,14 +105,16 @@ import processing.core.PApplet;
 	        if (address.isReachable(timeout)){
 	          serialNumber=findSerialNumber();
 	          if (!serialNumber.isEmpty()){
-	        	  Enumeration e = table.keys();
+	        	  Iterator iterator = table.keySet().iterator();
 	        	  boolean foundSource = false;
-	        	  do{
-					String key = (String) e.nextElement();
-		 		    username=key;
-		 		    password=(String) table.get(username);
-		 		    foundSource=retrieveFromGitHub(serialNumber,username, password);
-	        	  }while(e.hasMoreElements());
+	        	  
+	        	  while (iterator.hasNext() && foundSource==false) {
+						Object key = (String) iterator.next();
+			 		    username=(String) key;
+			 		    password=(String) table.get(key);
+			 		    foundSource=retrieveFromGitHub(serialNumber,username, password);
+	        	  }
+	        	  
 	        	  if(!foundSource){
 	        		  System.out.println("No source was found for this board.");
 	        	  }else{
