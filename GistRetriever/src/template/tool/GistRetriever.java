@@ -248,7 +248,7 @@ import processing.core.PApplet;
 			    }
 		    }else if (Base.isWindows()){
 		    	String response = "";
-			    ProcessBuilder pb = new ProcessBuilder("cmd", "/c", ("\""+Base.getSketchbookFolder().getAbsolutePath()+"\\tools\\devcon.exe\""), "find", "USB\\VID_2341*");//non FTDI
+			    ProcessBuilder pb = new ProcessBuilder("cmd", "/c", ("\""+Base.getSketchbookFolder().getAbsolutePath()+"\\tools\\devcon.exe\""), "find", "USB\\VID_2341*");//non FTDI 
 			    pb.redirectErrorStream(true);
 			    try {
 				    Process shell = pb.start();
@@ -284,7 +284,26 @@ import processing.core.PApplet;
 	    		    }
 	    		    if(response.contains("FTDI")){
 	            		return response.substring((response.lastIndexOf("+")+1), (response.lastIndexOf("+")+9));
-	    		    }
+	    		    }else if(response.contains("No matching devices found")){
+	    			    pb = new ProcessBuilder("cmd", "/c", ("\""+Base.getSketchbookFolder().getAbsolutePath()+"\\tools\\devcon.exe\""), "find", "USB\\VID_2341*");//freetronics
+	    			    try {
+	    				    Process shell = pb.start();
+	    				    // To capture output from the shell
+	    				    InputStream shellIn = shell.getInputStream();
+	    				    shell.waitFor();
+	    				    response = convertStreamToStr(shellIn);
+	    				    shellIn.close();   	
+	    				}catch (IOException e) {
+	    				    System.out.println("Error occured while executing Windows command. Error Description: "
+	    				    + e.getMessage());
+	    			    }catch (InterruptedException e) {
+	    				    System.out.println("Error occured while executing Windows command. Error Description: "
+	    				    + e.getMessage());
+	    			    }
+	    			    if(response.contains("USB\\VID")){
+	    	        		return response.substring((response.lastIndexOf("\\")+1), (response.indexOf(" ")));
+	    	        	}
+		        	}
 	        	}
 		    }
 		    return "";
