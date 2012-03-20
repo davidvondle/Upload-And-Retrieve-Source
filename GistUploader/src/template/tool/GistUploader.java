@@ -19,7 +19,7 @@
  * Boston, MA  02111-1307  USA
  * 
  * @author		Dave Vondle http://labs.ideo.com
- * @modified	03/19/2012
+ * @modified	03/20/2012
  * @version		0.1
  */
 
@@ -301,7 +301,7 @@ import processing.core.PApplet;
 	        boolean foundSerial=false;
 	        int serialNumPosition; 
 	        while ((line = br.readLine()) != null && !foundSerial) {
-	          if(line.indexOf("Arduino") > 0  || line.indexOf("FT232R") > 0){
+	          if(line.indexOf("Arduino") > 0  || line.indexOf("FT232R") > 0 || line.indexOf("Vendor ID: 0x20a0") > 0){ //Vendor ID: 0x20a0 is freetronics
 	            foundArduino=true;
 	          }
 	          if(foundArduino){
