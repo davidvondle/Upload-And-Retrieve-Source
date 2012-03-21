@@ -19,7 +19,7 @@
  * Boston, MA  02111-1307  USA
  * 
  * @author		Dave Vondle http://labs.ideo.com
- * @modified	03/20/2012
+ * @modified	03/21/2012
  * @version		0.1
  */
 
@@ -301,27 +301,27 @@ import processing.core.PApplet;
 	        boolean foundSerial=false;
 	        int serialNumPosition; 
 	        while ((line = br.readLine()) != null && !foundSerial) {
-	          if(line.indexOf("Arduino") > 0  || line.indexOf("FT232R") > 0 || line.indexOf("Vendor ID: 0x20a0") > 0){ //Vendor ID: 0x20a0 is freetronics
-	            foundArduino=true;
-	          }
-	          if(foundArduino){
-	            serialNumPosition = line.indexOf("Serial Number");
-	            if(serialNumPosition > 0){
-	              foundSerial=true; 
-	             return line.substring((serialNumPosition+15));
-	            }
-	          }
-	        }
-	        if(foundSerial==false){
-	          return "";
-	        }
+	        	if(line.indexOf("Arduino") > 0  || line.indexOf("FT232R") > 0 || line.indexOf("Vendor ID: 0x20a0") > 0){ //Vendor ID: 0x20a0 is freetronics
+		            foundArduino=true;
+		          }
+		          if(foundArduino){
+		            serialNumPosition = line.indexOf("Serial Number");
+		            if(serialNumPosition > 0){
+		              foundSerial=true; 
+		             return line.substring((serialNumPosition+15));
+		            }
+		          }
+		        }
+		        if(foundSerial==false){
+		          return "";
+		        }
 	      }
 	      catch(IOException e){
 	        System.out.println(e.getMessage());
 	      }
 	    }else if (Base.isLinux()){
-	    	String response = "";
-		    ProcessBuilder pb = new ProcessBuilder("bash", "-c", ("udevadm info --name="+Preferences.get("serial.port")+" --attribute-walk | grep ATTRS{serial}"));
+		    String response="";
+	    	ProcessBuilder pb = new ProcessBuilder("bash", "-c", ("udevadm info --name="+Preferences.get("serial.port")+" --attribute-walk | grep ATTRS{serial}"));
 		    pb.redirectErrorStream(true);
 		    try {
 			    Process shell = pb.start();
@@ -344,7 +344,7 @@ import processing.core.PApplet;
 		    }
 	    }else if (Base.isWindows()){
 	    	String response = "";
-		    ProcessBuilder pb = new ProcessBuilder("cmd", "/c", ("\""+Base.getSketchbookFolder().getAbsolutePath()+"\\tools\\devcon.exe\""), "find", "USB\\VID_2341*");//non FTDI
+		    ProcessBuilder pb = new ProcessBuilder("cmd", "/c", ("\""+Base.getSketchbookFolder().getAbsolutePath()+"\\tools\\devcon.exe\""), "find", "USB\\VID_2341*");//non FTDI 
 		    pb.redirectErrorStream(true);
 		    try {
 			    Process shell = pb.start();
@@ -380,10 +380,29 @@ import processing.core.PApplet;
     		    }
     		    if(response.contains("FTDI")){
             		return response.substring((response.lastIndexOf("+")+1), (response.lastIndexOf("+")+9));
-    		    }
+    		    }else if(response.contains("No matching devices found")){
+    			    pb = new ProcessBuilder("cmd", "/c", ("\""+Base.getSketchbookFolder().getAbsolutePath()+"\\tools\\devcon.exe\""), "find", "USB\\VID_20A0*");//freetronics? either shows up as VID_20A0 or VID_20a0
+    			    try {
+    				    Process shell = pb.start();
+    				    // To capture output from the shell
+    				    InputStream shellIn = shell.getInputStream();
+    				    shell.waitFor();
+    				    response = convertStreamToStr(shellIn);
+    				    shellIn.close();   	
+    				}catch (IOException e) {
+    				    System.out.println("Error occured while executing Windows command. Error Description: "
+    				    + e.getMessage());
+    			    }catch (InterruptedException e) {
+    				    System.out.println("Error occured while executing Windows command. Error Description: "
+    				    + e.getMessage());
+    			    }
+    			    if(response.contains("USB\\VID")){
+    	        		return response.substring((response.lastIndexOf("\\")+1), (response.indexOf(" ")));
+    	        	}
+	        	}
         	}
 	    }
-	    return("");
+	    return "";
 	}
 
 

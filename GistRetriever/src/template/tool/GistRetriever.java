@@ -19,7 +19,7 @@
  * Boston, MA  02111-1307  USA
  * 
  * @author		Dave Vondle http://labs.ideo.com
- * @modified	03/20/2012
+ * @modified	03/21/2012
  * @version		0.1
  */
 
@@ -285,7 +285,7 @@ import processing.core.PApplet;
 	    		    if(response.contains("FTDI")){
 	            		return response.substring((response.lastIndexOf("+")+1), (response.lastIndexOf("+")+9));
 	    		    }else if(response.contains("No matching devices found")){
-	    			    pb = new ProcessBuilder("cmd", "/c", ("\""+Base.getSketchbookFolder().getAbsolutePath()+"\\tools\\devcon.exe\""), "find", "USB\\VID_2341*");//freetronics
+	    			    pb = new ProcessBuilder("cmd", "/c", ("\""+Base.getSketchbookFolder().getAbsolutePath()+"\\tools\\devcon.exe\""), "find", "USB\\VID_20A0*");//freetronics? either shows up as VID_20A0 or VID_20a0
 	    			    try {
 	    				    Process shell = pb.start();
 	    				    // To capture output from the shell
