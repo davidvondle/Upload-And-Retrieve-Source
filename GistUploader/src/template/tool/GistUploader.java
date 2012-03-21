@@ -132,62 +132,65 @@ import processing.core.PApplet;
  	}
  	
 	private void uploadToGitHub(String serialNumber) { 
-			String username="";
-			String password="";
-			Boolean personalCredentialsFound = false;
-			
-			SketchCode[] theSketches;
-			String[] theSketchesContent;
-			
-			GitHubClient client;
-		    GistService service;
-		    GistFile[] file;
-		    String[] filename;
-		    Gist gist = new Gist();
-		    Map<String,GistFile> mp=new HashMap<String, GistFile>();
-			
-			theSketches=editor.getSketch().getCode();
-			theSketchesContent = new String[theSketches.length];
-			file=new GistFile[theSketches.length];
-			filename = new String[theSketches.length];
-			int indexOfUsername=-1;
-			boolean makePrivate=false;
-			
-			for(int j =0; j<theSketches.length; j++){
-				file[j]=new GistFile();
-				if(theSketches[j]==editor.getSketch().getCurrentCode()){//so you don't need to save
-					theSketchesContent[j]=editor.getText();
-				}else{
-					theSketchesContent[j]=theSketches[j].getProgram();
-				}
-	        	if(theSketches[j].getExtension()=="ino" || theSketches[j].getExtension()=="pde"){
-	        		indexOfUsername=theSketchesContent[j].indexOf("USE_GITHUB_USERNAME=");
-	        		makePrivate=theSketchesContent[j].contains("MAKE_PRIVATE_ON_GITHUB");
-	        		
-	        		if(!personalCredentialsFound)
-		        		if(indexOfUsername!=-1){//if the user specifies a username in the code comments
-		        			personalCredentialsFound=true;
-		    				username=theSketchesContent[j].substring(indexOfUsername+20);
-		    			    username=username.substring(0,username.indexOf('\n')).trim();
-		    			    password=(String) table.get(username);
-		    			}else{ //defaults to first entry in gistCredentials.txt
-		    	 		   username=table.keySet().toArray()[0].toString(); //first entry
-		    	 		   password=(String) table.get(table.keySet().toArray()[0]);
-		    			}
-	        	}
-			}
-			System.out.println("Sending source to "+username+"'s github account...");
+		String username="";
+		String password="";
 		
-			client = new GitHubClient().setCredentials(username, password);
-		    service = new GistService(client);
-	      
-	      try{
-	        List<Gist> gists = service.getGists(username);
-	        Boolean foundMatchingGist=false;
-	        for (int i = gists.size(); --i >= 0;){  //backwards so the first one found is the oldest one
-	        	gist = (Gist)gists.get(i);
-	          
-	        	if(gist.getDescription().toUpperCase().contains(serialNumber.toUpperCase())){ //found the last matching gist. toUpperCase is because Windows capitalizes the letters I hope this isn't a problem!
+		SketchCode[] theSketches;
+		String[] theSketchesContent;
+		
+		GitHubClient client;
+	    GistService service;
+	    GistFile[] file;
+	    String[] filename;
+	    Gist gist = new Gist();
+	    Map<String,GistFile> mp=new HashMap<String, GistFile>();
+		
+		theSketches=editor.getSketch().getCode();
+		theSketchesContent = new String[theSketches.length];
+		file=new GistFile[theSketches.length];
+		filename = new String[theSketches.length];
+		int indexOfUsername=-1;
+		boolean makePrivate=false;
+		
+		for(int j =0; j<theSketches.length; j++){
+			file[j]=new GistFile();
+			if(theSketches[j]==editor.getSketch().getCurrentCode()){//so you don't need to save
+				theSketchesContent[j]=editor.getText();
+			}else{
+				theSketchesContent[j]=theSketches[j].getProgram();
+			}
+        	if(theSketches[j].getExtension()=="ino" || theSketches[j].getExtension()=="pde"){
+        		indexOfUsername=theSketchesContent[j].indexOf("USE_GITHUB_USERNAME=");
+        		makePrivate=theSketchesContent[j].contains("MAKE_PRIVATE_ON_GITHUB");
+        		
+	        	if(indexOfUsername!=-1){//if the user specifies a username in the code comments
+    				username=theSketchesContent[j].substring(indexOfUsername+20);
+    			    username=username.substring(0,username.indexOf('\n')).trim();
+    			    if(table.containsKey(username)){
+    			    	password=(String) table.get(username);
+    			    }else{
+    			    	System.out.println("No entry found for specified username in gistCredentials.txt, check spelling and try again");
+    			    	return;
+    			    }
+    			}else{ //defaults to first entry in gistCredentials.txt
+    	 		   username=table.keySet().toArray()[0].toString(); //first entry
+    	 		   password=(String) table.get(table.keySet().toArray()[0]);
+    			}
+        	}
+		}
+		
+		System.out.println("Sending source to "+username+"'s github account...");
+	
+		client = new GitHubClient().setCredentials(username, password);
+		service = new GistService(client);
+      
+		try{
+		    List<Gist> gists = service.getGists(username);
+		    Boolean foundMatchingGist=false;
+		    for (int i = gists.size(); --i >= 0;){  //backwards so the first one found is the oldest one
+		    	gist = (Gist)gists.get(i);
+		      
+		    	if(gist.getDescription().toUpperCase().contains(serialNumber.toUpperCase())){ //found the last matching gist. toUpperCase is because Windows capitalizes the letters I hope this isn't a problem!
 		            if(foundMatchingGist==true){ //if one has already been found then an extra was made in error and needs to be cleaned up
 		            	//delete the spurious gist
 		              service.deleteGist(gist.getId());
@@ -209,7 +212,7 @@ import processing.core.PApplet;
 				            mp.put(filename[j], file[j]);
 						}
 		            	gist.setFiles(mp);
-	
+		
 		            	service.updateGist(gist);
 		            	deleteGistsOnOtherAccounts(username, serialNumber);
 		            	System.out.println(new String("You can find the source online at: " + gist.getHtmlUrl()));
@@ -218,25 +221,25 @@ import processing.core.PApplet;
 		            	service.deleteGist(gist.getId());
 		            	foundMatchingGist=false;
 		            }
-	        	}
-	        }
-	        if(foundMatchingGist==false){ //if no gist exists for the board
-	        	gist = new Gist().setDescription(new String("The file that is currently on an "+ getCurrentBoard() + " with a serial number of "+ serialNumber));
+		    	}
+		    }
+		    if(foundMatchingGist==false){ //if no gist exists for the board
+		    	gist = new Gist().setDescription(new String("The file that is currently on an "+ getCurrentBoard() + " with a serial number of "+ serialNumber));
 		        gist.setPublic(!makePrivate);                  //user can make it private by entering MAKE_PRIVATE_ON_GITHUB in the comments
-	        	for(int j =0; j<theSketches.length; j++){
-	        		file[j].setContent(theSketchesContent[j]);
-	        		filename[j] = theSketches[j].getPrettyName()+"."+theSketches[j].getExtension();
-	        		mp.put(filename[j], file[j]);
-	        	}
-	        	gist.setFiles(mp);
-	        	gist = service.createGist(gist);
-	        	deleteGistsOnOtherAccounts(username, serialNumber);
+		    	for(int j =0; j<theSketches.length; j++){
+		    		file[j].setContent(theSketchesContent[j]);
+		    		filename[j] = theSketches[j].getPrettyName()+"."+theSketches[j].getExtension();
+		    		mp.put(filename[j], file[j]);
+		    	}
+		    	gist.setFiles(mp);
+		    	gist = service.createGist(gist);
+		    	deleteGistsOnOtherAccounts(username, serialNumber);
 		        System.out.println(new String("You can find the source online at: " + gist.getHtmlUrl()));
-	        }
-	      }catch(Exception e){
-	        System.out.println("Failed. Login credentials incorrect, please correct gistCredentials.txt");
-	        System.out.println(e);
-	      }
+		    }
+		  }catch(Exception e){
+		    System.out.println("Failed. Login credentials incorrect, please correct gistCredentials.txt");
+		    System.out.println(e);
+		  }
 	}
 	
 	public void deleteGistsOnOtherAccounts(String correctUsername, String serialNumber) {  // if you have multiple accounts in your gistCredentials file, it needs to make sure only the newest file exists
@@ -244,7 +247,7 @@ import processing.core.PApplet;
 		while (iterator.hasNext()) { 
 			Object key = (String) iterator.next();
 			String username=(String) key;
-			if (username != correctUsername){
+			if (!username.equals(correctUsername)){
 				GitHubClient client;
 			    GistService service;
 			    Gist gist = new Gist();
