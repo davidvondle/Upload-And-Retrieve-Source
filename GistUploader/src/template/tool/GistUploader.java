@@ -1,7 +1,7 @@
 /**
  * you can put a one sentence description of your tool here.
  *
- * (c) 2011
+ * ##copyright##
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,9 +18,9 @@
  * Free Software Foundation, Inc., 59 Temple Place, Suite 330,
  * Boston, MA  02111-1307  USA
  * 
- * @author		Dave Vondle http://labs.ideo.com
- * @modified	03/21/2012
- * @version		0.1
+ * @author		##author##
+ * @modified	##date##
+ * @version		##version##
  */
 
  package template.tool;
@@ -106,16 +106,20 @@ import processing.core.PApplet;
 	 
 	public void run() {
 		try {
-            int timeout = 2000;
+            //int timeout = 2000;
             InetAddress address = InetAddress.getByName("api.github.com");
+            getSerialNumberAndSend();
+            /*   //isReachable  is prone to failure due to firewall issues etc.
             if (address.isReachable(timeout)){
             	getSerialNumberAndSend();
             }else{
               System.out.println("github service is unavailable, source will not be sent.");
+              System.out.println(address.getHostAddress());
               System.out.println("Make sure to save locally!");
             }
+            */
         }catch (Exception e) {
-            System.out.println("You are not connected to the internet, source will not be sent.");
+            System.out.println("Can't get through to github.  You may not be connected to the internet, source will not be sent.");
             System.out.println("Make sure to save locally!");
             System.out.println(e);
         }
