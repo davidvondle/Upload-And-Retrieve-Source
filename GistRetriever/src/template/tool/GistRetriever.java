@@ -19,13 +19,13 @@
  * Boston, MA  02111-1307  USA
  * 
  * @author		Dave Vondle http://labs.ideo.com
- * @modified	03/21/2012
- * @version		0.1
+ * @modified		10/25/2017
+ * @version		0.2
  */
 
  package template.tool;
  
- import java.awt.FileDialog;
+ //import java.awt.FileDialog;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -37,22 +37,24 @@ import java.io.Reader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.net.InetAddress;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.Hashtable;
+//import java.util.Collections;
+//import java.util.Enumeration;
+//import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.eclipse.egit.github.core.Gist;
-import org.eclipse.egit.github.core.GistFile;
+//import org.eclipse.egit.github.core.GistFile;
 import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.service.GistService;
 
+
 import processing.app.*;
-import processing.app.tools.*;
-import processing.core.PApplet;
+import processing.app.helpers.OSUtils;
+import processing.app.tools.Tool;
+import processing.app.legacy.PApplet;
  
  
  
@@ -62,6 +64,7 @@ import processing.core.PApplet;
  // must be the same as the value defined for project.name in your build.properties
  
 	Editor editor; 
+	EditorTab editorTab;
 	static LinkedHashMap table = new LinkedHashMap();
 	static final String GIST_FILE = "gistCredentials.txt";
 	static File gistCredFile;
@@ -77,15 +80,13 @@ import processing.core.PApplet;
 		this.editor=editor;
 	}
 	
-	
-	
 	public void run() {
 	      String serialNumber; 
 	      String username="";
 	      String password="";
 	      
 	      //first look for different github accounts
-	      gistCredFile = Base.getSettingsFile(GIST_FILE);
+	      gistCredFile = BaseNoGui.getSettingsFile(GIST_FILE);
 			try {
 		          load(new FileInputStream(gistCredFile));
 		          //now "table" should hold username/password pairs
@@ -100,9 +101,9 @@ import processing.core.PApplet;
 	      
 	      //then find gist
 	      try {
-	        int timeout = 2000;
 	        InetAddress address = InetAddress.getByName("api.github.com");
-	        if (address.isReachable(timeout)){
+	        System.out.println(address.toString());
+	        //if (isReachableByPing("api.github.com")){
 	          serialNumber=findSerialNumber();
 	          if (!serialNumber.isEmpty()){
 	        	  Iterator iterator = table.keySet().iterator();
@@ -118,19 +119,23 @@ import processing.core.PApplet;
 	        	  if(!foundSource){
 	        		  System.out.println("No source was found for this board.");
 	        	  }else{
+	        		  editorTab=editor.getTabs().get(0);
 	        		  for (String key : gist.getFiles().keySet()) {
 				          if(key.contains(".pde") || key.contains(".ino")){
-				        	  editor.getSketch().setCurrentCode(0);//goes to original pane
-				        	  editor.setText(gist.getFiles().get(key).getContent()); //gets the first sketch, puts it in the window
+				        	  //editor.getSketch().setCurrentCode(0);//goes to original pane	
+				        	  //if(!editor.getTabs().isEmpty()){
+				        		  editorTab.setText(gist.getFiles().get(key).getContent()); //gets the first sketch, puts it in the window
+				        	  	//}
 				          }else{ //make libraries
-				        	  File newDirectory = new File(editor.getSketch().getFolder(), "temp_gist");
+				        	  //File newDirectory = new File(editor.getSketch().getFolder(), "temp_gist");
+				        	  File newDirectory = new File(editorTab.getSketch().getSketch().getFolder(), "temp_gist");
 				        	  File testFile = new File(newDirectory, gist.getFiles().get(key).getFilename());
 				        	  PrintWriter writer = PApplet.createWriter(testFile);
 			        		  writer.println(gist.getFiles().get(key).getContent());
 			        		  writer.flush();
 			        		  writer.close();
 			        		  // now do the work of adding the file
-			        		  editor.getSketch().addFile(testFile);
+			        		  editorTab.getSketch().addFile(testFile);
 		        		    
 			        		  testFile.delete();
 			        		  newDirectory.delete();
@@ -140,12 +145,15 @@ import processing.core.PApplet;
 	        	  }
 	          }else{
 	            System.out.println("Could not find your board, make sure it's plugged into USB.");
+	            if (OSUtils.isWindows()){
+	 			   System.out.println("Make sure you are running Arduino as an administrator (right click on icon > Run as administrator)");
+	 		   }
 	          }
-	        }else{
-	          System.out.println("github service is unavailable, cannot retrieve source.");
-	        }
+	       //}else{
+	        //  System.out.println("github service is unavailable, cannot retrieve source.");
+	        //}
 	      } catch (Exception e) {
-	        System.out.println("You are not connected to the internet, cannot retrieve source.");
+	        System.out.println("You are not connected to the internet, or github is down, cannot retrieve source.");
 	        System.out.println(e);
 	      }
 	    }
@@ -190,7 +198,7 @@ import processing.core.PApplet;
 	    }
 	    
 	    public String findSerialNumber() {
-		    if (Base.isMacOS()) {
+		    if (OSUtils.isMacOS()) {
 		      String getUsbArgs[] = new String[2];
 		      getUsbArgs[0]="system_profiler";
 		      getUsbArgs[1]="SPUSBDataType";
@@ -205,25 +213,28 @@ import processing.core.PApplet;
 		        boolean foundSerial=false;
 		        int serialNumPosition; 
 		        while ((line = br.readLine()) != null && !foundSerial) {
-		        	if(line.indexOf("Arduino") > 0  || line.indexOf("FT232R") > 0 || line.indexOf("Vendor ID: 0x20a0") > 0){ //Vendor ID: 0x20a0 is freetronics
+		        	if(line.indexOf("Arduino") > 0  || line.indexOf("FT232R") > 0 || line.indexOf("Vendor ID: 0x20a0") > 0 || line.indexOf("Vendor ID: 0x2341") > 0 || line.indexOf("Vendor ID: 0x16c0") > 0){ //Vendor ID: 0x20a0 is freetronics, 2a03 are fake arduinos, 2341 are real arduinos, 16c0 are teensys.
 			            foundArduino=true;
-			          }
-			          if(foundArduino){
-			            serialNumPosition = line.indexOf("Serial Number");
-			            if(serialNumPosition > 0){
-			              foundSerial=true; 
-			             return line.substring((serialNumPosition+15));
-			            }
+			        }else if(line.indexOf("Vendor ID: 0x2a03") > 0){
+			        	foundArduino=true;
+			        	//System.out.println("Did you know you are using an unofficial Arduino? Please support Arduino.cc!");
+			        }
+			        if(foundArduino){
+			          serialNumPosition = line.indexOf("Serial Number");
+			          if(serialNumPosition > 0){
+			            foundSerial=true; 
+			           return line.substring((serialNumPosition+15));
 			          }
 			        }
-			        if(foundSerial==false){
-			          return "";
-			        }
+			     }
+			     if(foundSerial==false){
+			       return "";
+			     }
 		      }
 		      catch(IOException e){
 		        System.out.println(e.getMessage());
 		      }
-		    }else if (Base.isLinux()){
+		    }else if (OSUtils.isLinux()){
 			    String response="";
 		    	ProcessBuilder pb = new ProcessBuilder("bash", "-c", ("udevadm info --name="+Preferences.get("serial.port")+" --attribute-walk | grep ATTRS{serial}"));
 			    pb.redirectErrorStream(true);
@@ -246,9 +257,9 @@ import processing.core.PApplet;
 				    System.out.println("Error occured while executing Linux command. Error Description: "
 				    + e.getMessage());
 			    }
-		    }else if (Base.isWindows()){
+		    }else if (OSUtils.isWindows()){
 		    	String response = "";
-			    ProcessBuilder pb = new ProcessBuilder("cmd", "/c", ("\""+Base.getSketchbookFolder().getAbsolutePath()+"\\tools\\devcon.exe\""), "find", "USB\\VID_2341*");//non FTDI 
+			    ProcessBuilder pb = new ProcessBuilder("cmd", "/c", ("\""+BaseNoGui.getSketchbookFolder().getAbsolutePath()+"\\tools\\devcon.exe\""), "find", "USB\\VID_2341*");//non FTDI 
 			    pb.redirectErrorStream(true);
 			    try {
 				    Process shell = pb.start();
@@ -267,7 +278,7 @@ import processing.core.PApplet;
 			    if(response.contains("USB\\VID")){
 	        		return response.substring((response.lastIndexOf("\\")+1), (response.indexOf(" ")));
 	        	}else if(response.contains("No matching devices found")){
-	        		pb = new ProcessBuilder("cmd", "/c", ("\""+Base.getSketchbookFolder().getAbsolutePath()+"\\tools\\devcon.exe\""), "find", "FTDI*");// FTDI
+	        		pb = new ProcessBuilder("cmd", "/c", ("\""+BaseNoGui.getSketchbookFolder().getAbsolutePath()+"\\tools\\devcon.exe\""), "find", "FTDI*");// FTDI
 	        		try {
 	    			    Process shell = pb.start();
 	    			    // To capture output from the shell
@@ -285,7 +296,7 @@ import processing.core.PApplet;
 	    		    if(response.contains("FTDI")){
 	            		return response.substring((response.lastIndexOf("+")+1), (response.lastIndexOf("+")+9));
 	    		    }else if(response.contains("No matching devices found")){
-	    			    pb = new ProcessBuilder("cmd", "/c", ("\""+Base.getSketchbookFolder().getAbsolutePath()+"\\tools\\devcon.exe\""), "find", "USB\\VID_20A0*");//freetronics? either shows up as VID_20A0 or VID_20a0
+	    			    pb = new ProcessBuilder("cmd", "/c", ("\""+BaseNoGui.getSketchbookFolder().getAbsolutePath()+"\\tools\\devcon.exe\""), "find", "USB\\VID_20A0*");//freetronics? either shows up as VID_20A0 or VID_20a0
 	    			    try {
 	    				    Process shell = pb.start();
 	    				    // To capture output from the shell
@@ -303,6 +314,66 @@ import processing.core.PApplet;
 	    			    if(response.contains("USB\\VID")){
 	    	        		return response.substring((response.lastIndexOf("\\")+1), (response.indexOf(" ")));
 	    	        	}
+	    			    else if(response.contains("No matching devices found")) {
+	    			    	pb = new ProcessBuilder("cmd", "/c", ("\""+BaseNoGui.getSketchbookFolder().getAbsolutePath()+"\\tools\\devcon.exe\""), "find", "USB\\VID_2A03*");//Fake Arduino.org board
+	        			    try {
+	        				    Process shell = pb.start();
+	        				    // To capture output from the shell
+	        				    InputStream shellIn = shell.getInputStream();
+	        				    shell.waitFor();
+	        				    response = convertStreamToStr(shellIn);
+	        				    shellIn.close();   	
+	        				}catch (IOException e) {
+	        				    System.out.println("Error occured while executing Windows command. Error Description: "
+	        				    + e.getMessage());
+	        			    }catch (InterruptedException e) {
+	        				    System.out.println("Error occured while executing Windows command. Error Description: "
+	        				    + e.getMessage());
+	        			    }
+	        			    if(response.contains("USB\\VID")){
+	        	        		return response.substring((response.lastIndexOf("\\")+1), (response.indexOf(" ")));
+	        	        	}
+	        			    else if(response.contains("No matching devices found")) {
+	        			    	pb = new ProcessBuilder("cmd", "/c", ("\""+BaseNoGui.getSketchbookFolder().getAbsolutePath()+"\\tools\\devcon.exe\""), "find", "USB\\VID_2341*");//Real Arduino Board
+	            			    try {
+	            				    Process shell = pb.start();
+	            				    // To capture output from the shell
+	            				    InputStream shellIn = shell.getInputStream();
+	            				    shell.waitFor();
+	            				    response = convertStreamToStr(shellIn);
+	            				    shellIn.close();   	
+	            				}catch (IOException e) {
+	            				    System.out.println("Error occured while executing Windows command. Error Description: "
+	            				    + e.getMessage());
+	            			    }catch (InterruptedException e) {
+	            				    System.out.println("Error occured while executing Windows command. Error Description: "
+	            				    + e.getMessage());
+	            			    }
+	            			    if(response.contains("USB\\VID")){
+	            	        		return response.substring((response.lastIndexOf("\\")+1), (response.indexOf(" ")));
+	            	        	}
+	            			    else if(response.contains("No matching devices found")) {
+	            			    	pb = new ProcessBuilder("cmd", "/c", ("\""+BaseNoGui.getSketchbookFolder().getAbsolutePath()+"\\tools\\devcon.exe\""), "find", "USB\\VID_16C0*");//Teensy
+	                			    try {
+	                				    Process shell = pb.start();
+	                				    // To capture output from the shell
+	                				    InputStream shellIn = shell.getInputStream();
+	                				    shell.waitFor();
+	                				    response = convertStreamToStr(shellIn);
+	                				    shellIn.close();   	
+	                				}catch (IOException e) {
+	                				    System.out.println("Error occured while executing Windows command. Error Description: "
+	                				    + e.getMessage());
+	                			    }catch (InterruptedException e) {
+	                				    System.out.println("Error occured while executing Windows command. Error Description: "
+	                				    + e.getMessage());
+	                			    }
+	                			    if(response.contains("USB\\VID")){
+	                	        		return response.substring((response.lastIndexOf("\\")+1), (response.indexOf(" ")));
+	                	        	}
+	            			    }
+	        			    }
+	    			    }
 		        	}
 	        	}
 		    }
@@ -350,6 +421,24 @@ import processing.core.PApplet;
 		      }
 		    }
 		  }
+		static public boolean isReachableByPing(String host) {
+		    try{
+		        String cmd = "";
+
+		        if(System.getProperty("os.name").startsWith("Windows"))
+		            cmd = "ping -n 1 " + host; // For Windows
+		        else
+		            cmd = "ping -c 1 " + host; // For Linux and OSX
+
+		        Process myProcess = Runtime.getRuntime().exec(cmd);
+		        myProcess.waitFor();
+
+		        return myProcess.exitValue() == 0;
+		    } catch( Exception e ) {
+		    	System.out.println(e.getMessage());
+		        return false;
+		    }
+		}
  }
 
 
