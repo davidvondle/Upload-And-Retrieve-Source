@@ -78,6 +78,19 @@ import processing.app.legacy.PApplet;
  
 	public void init(Editor editor) {
 		this.editor=editor;
+		
+		//Arduino moves tools into the library folder when you change boards in the boards menu. Then it gives you an error of this happens.  This fixes that.
+		deleteDir(new File(BaseNoGui.getSketchbookLibrariesFolder(), "GistRetriever"));
+	}
+	
+	void deleteDir(File file) {
+	    File[] contents = file.listFiles();
+	    if (contents != null) {
+	        for (File f : contents) {
+	            deleteDir(f);
+	        }
+	    }
+	   file.delete();
 	}
 	
 	public void run() {

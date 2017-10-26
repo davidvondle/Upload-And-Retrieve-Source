@@ -54,6 +54,7 @@ import org.eclipse.egit.github.core.GistFile;
 import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.service.GistService;
 
+
 import processing.app.*;
 import processing.app.helpers.OSUtils;
 //import processing.app.debug.Target;
@@ -81,8 +82,11 @@ import processing.app.legacy.PApplet;
 
 	public void init(Editor editor) {
 		this.editor=editor;
-
-	      // next load user preferences file
+		
+		//Arduino moves tools into the library folder when you change boards in the boards menu. Then it gives you an error of this happens.  This fixes that.
+		deleteDir(new File(BaseNoGui.getSketchbookLibrariesFolder(), "GistUploader"));
+		
+	    // next load user preferences file
 	    //gistCredFile = Base.getSettingsFile(GIST_FILE);
 		gistCredFile = BaseNoGui.getSettingsFile(GIST_FILE);
 	      if (!gistCredFile.exists()) {
@@ -106,8 +110,19 @@ import processing.app.legacy.PApplet;
 	        }
 	      }  
 	}
+	
+	void deleteDir(File file) {
+	    File[] contents = file.listFiles();
+	    if (contents != null) {
+	        for (File f : contents) {
+	            deleteDir(f);
+	        }
+	    }
+	   file.delete();
+	}
 	 
 	public void run() {
+		
 		try {
             //int timeout = 2000;
             InetAddress address = InetAddress.getByName("api.github.com");
