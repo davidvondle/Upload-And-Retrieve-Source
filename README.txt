@@ -4,6 +4,8 @@ To install, place the folders "GistUploader" and "GistRetriever" in Documents/Ar
 On Windows you will need the "DevCon" command line utility, download directly from Microsoft here: http://support.microsoft.com/kb/311272
 devcon.exe should be placed in the same "tools" folder as everything else.
 
+Due to security features of Windows, you now need to run Arduino as an Administrator for this software to work. When launching Arduino, right-click the icon and select “Run as Administrator”.
+
 When you are finished programming your Arduino, select "Save and Upload Source to Github from the "Tools" dropdown menu.
 
 If you ever need the source for that board, plug the board into USB, and select "Retrieve Source". The code will show up in the editor window.
